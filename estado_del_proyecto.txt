@@ -1,0 +1,15 @@
+ =======================================================
+   ESTADO DEL MOD: EXPORTADOR DE PRECIOS A CSV
+=======================================================
+
+LOGROS ALCANZADOS:
+1. Entorno configurado: BepInEx instalado, proyecto en VS Code listo y compilando sin errores.
+2. Automatización: El archivo .dll se copia automáticamente a la carpeta plugins al hacer "dotnet build".
+3. Ingeniería inversa: Descubrimos que el catálogo principal se llama "ProductListing" y contiene "productsData" (tipo ProductData).
+4. Exportación base: Logramos extraer ID_Producto, Nombre_Marca y Costo_Base al archivo CSV.
+5. Fixes: Se solucionó el problema de las comas/puntos en los decimales para que Google Sheets lo lea perfecto.
+6. Avance: Encontramos "productPlayerPricing" (precio en etiqueta) y "tierInflation", pero aún falta el Precio de Mercado sugerido.
+
+ESTADO ACTUAL:
+¡Mod finalizado! Se descubrió que el Precio de Mercado se calcula matemáticamente (Costo Base * Inflación del Tier). Se añadió además el Límite de Tolerancia de los NPCs.
+¡Ahora tiene Auto-Sincronización! El mod detecta automáticamente cuando es Jueves (cambio de inflación) o cuando el jugador cambia una etiqueta, y envía los datos a Google Sheets.

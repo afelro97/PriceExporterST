@@ -1,0 +1,16 @@
+# Carpetas de compilación de .NET
+bin/
+obj/
+
+# Archivos de caché del IDE (Visual Studio / VS Code)
+.vs/
+.vscode/
+*.user
+*.suo
+
+# Archivos generados por el mod / Logs del juego
+*.log
+PreciosExportados.csv
+
+# No subir DLLs del juego si alguna vez se copian aquí por error
+*.dll
