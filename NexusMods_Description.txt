@@ -57,7 +57,7 @@ To test the magic live: aim at any product on the shelves with your price gun, c
 
 [size=4][b]👨‍💻 Source Code & Technical Details[/b][/size]
 For source code, compilation instructions, and deep technical details about how the reverse engineering was done, please visit the official repository:
-[url=PON_AQUI_TU_ENLACE_DE_GITHUB_REAL]GitHub Repository[/url]
+[url=https://github.com/afelro97/PriceExporterST]GitHub Repository[/url]
 
 [size=4][b]🐛 Bugs and Feedback[/b][/size]
 If you have any ideas to improve the mod, want to add a new language, or found a bug, I'd love to hear it!
