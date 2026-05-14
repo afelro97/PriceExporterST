@@ -31,8 +31,9 @@ jobs:
           copy bin\Release\net46\ModExportadorPrecios.dll Empaquetado\plugins\
           copy README.md Empaquetado\
           copy README_en.md Empaquetado\
+          Compress-Archive -Path Empaquetado\* -DestinationPath ModExportadorPrecios.zip
 
       - name: Subir a GitHub Releases
         uses: softprops/action-gh-release@v2
         with:
-          files: Empaquetado/*
+          files: ModExportadorPrecios.zip
