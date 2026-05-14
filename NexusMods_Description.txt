@@ -1,0 +1,67 @@
+[size=5][b]Supermarket Together - Price Exporter Mod[/b][/size]
+
+This is a mod for [b]Supermarket Together[/b] created with C# and BepInEx. Its main function is to apply reverse engineering to extract the internal product data of the game (Costs, Inflation, Label Prices, and NPC Tolerance) and export them in real-time to a [b]Google Sheets[/b] spreadsheet in the cloud.
+
+[size=4][b]✨ Features[/b][/size]
+[list]
+[*][b]Mathematical Export:[/b] Extracts ID, Name, Tier, and Base Cost. Additionally, [b]calculates in real-time[/b] the Market Price (Cost * Tier Inflation), extracts the Label Price (Player Pricing), and discovers the maximum limit customers will pay (NPC_Manager Threshold).
+[*][b]Real-Time Synchronization:[/b] The mod acts as a memory watcher. It automatically detects when Thursday arrives in the game (inflation change) or when the player modifies a label with the price gun, sending the changes immediately to the cloud.
+[*][b]Manual Mode:[/b] You can press the [b]F9[/b] key at any time, or use the [b]export button[/b] within the BepInEx menu (F1) to force synchronization.
+[*][b]Multilingual:[/b] Includes native support for English and Spanish (lang_en.txt and lang_es.txt). The language can be easily changed from the configuration menu (F1).
+[/list]
+
+[size=4][b]🛠️ Requirements[/b][/size]
+[list]
+[*][b]Base game:[/b] Supermarket Together.
+[*][b]Mod Loader:[/b] BepInEx 5.4.x installed in the game's root folder. It is essential to load and run the mod.
+[*][b]Cloud:[/b] A free Google account (to create the bridge with Google Apps Script).
+[/list]
+
+[size=4][b]🚀 Installation and Usage[/b][/size]
+
+[size=3][b]1. Prepare Google Sheets (The Bridge)[/b][/size]
+[list=1]
+[*]Create a new spreadsheet in Google Sheets.
+[*]Go to [b]Extensions > Apps Script[/b].
+[*]Delete any existing code and paste this JavaScript code to overwrite the table:
+[code]
+function doPost(e) {
+  try {
+    var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+    var csvData = Utilities.parseCsv(e.postData.contents);
+    sheet.clearContents();
+    sheet.getRange(1, 1, csvData.length, csvData.length).setValues(csvData);
+    return ContentService.createTextOutput("OK");
+  } catch(error) {
+    return ContentService.createTextOutput("Error: " + error);
+  }
+}
+[/code]
+[*]Deploy it as a [b]Web App[/b] (giving access to [i]Anyone[/i]).
+[*]Copy the secret URL provided by Google.
+[/list]
+
+[size=3][b]2. Configure the Mod[/b][/size]
+[list=1]
+[*][b](Recommended)[/b] Make sure you have [b]BepInEx Configuration Manager[/b] installed in your plugins folder.
+[*]Start the game and press [b]F1[/b] to open the overlay configuration menu.
+[*]Find and expand the [b]Exportador de Precios CSV[/b] tab, paste your secret URL in the corresponding text box, and that's it! It will save automatically.
+[/list]
+[i](In this same menu, you will find an "Export to Google Sheets" button to force an instant upload).[/i]
+[i](Manual alternative without the menu: Run the game once, close it, and paste your URL in the BepInEx/config/com.tunombre.supermarket.precios.cfg file).[/i]
+
+[size=3][b]3. Let's play![/b][/size]
+Start your game. You will see the "Sincronización automática de bienvenida..." (Automatic welcome synchronization) messages in the black BepInEx console. 
+
+To test the magic live: aim at any product on the shelves with your price gun, change the value, and look at your Google Sheet on a second monitor. The data will update by itself!
+
+[size=4][b]👨‍💻 Source Code & Technical Details[/b][/size]
+For source code, compilation instructions, and deep technical details about how the reverse engineering was done, please visit the official repository:
+[url=PON_AQUI_TU_ENLACE_DE_GITHUB_REAL]GitHub Repository[/url]
+
+[size=4][b]🐛 Bugs and Feedback[/b][/size]
+If you have any ideas to improve the mod, want to add a new language, or found a bug, I'd love to hear it!
+Please open a ticket in the [b]Issues[/b] tab of the GitHub repository.
+
+---
+[i]Created with passion, curiosity, and software engineering.[/i]
