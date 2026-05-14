@@ -23,7 +23,20 @@ Este es un mod para **Supermarket Together** creado con C# y BepInEx. Su funció
 ### 1. Preparar Google Sheets (El Puente)
 1. Crea una nueva hoja de cálculo en Google Sheets.
 2. Ve a **Extensiones > Apps Script**.
-3. Pega tu código en JavaScript para sobreescribir la tabla.
+3. Borra el código que aparezca y pega este código en JavaScript para sobreescribir la tabla:
+   ```javascript
+   function doPost(e) {
+     try {
+       var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+       var csvData = Utilities.parseCsv(e.postData.contents);
+       sheet.clearContents();
+       sheet.getRange(1, 1, csvData.length, csvData.length).setValues(csvData);
+       return ContentService.createTextOutput("OK");
+     } catch(error) {
+       return ContentService.createTextOutput("Error: " + error);
+     }
+   }
+   ```
 4. Impleméntalo como **Aplicación Web** (dando acceso a *Cualquier persona*).
 5. Copia la URL secreta que te proporciona Google.
 
