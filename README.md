@@ -6,7 +6,7 @@ Este es un mod para **Supermarket Together** creado con C# y BepInEx. Su funció
 
 - **Exportación Matemática:** Extrae el ID, Nombre, Tier y Costo Base. Además, **calcula en tiempo real** el Precio de Mercado (Costo * Inflación del Tier), extrae el Precio de Etiqueta (Player Pricing) y descubre el límite máximo que los clientes pagarán (Threshold de NPC_Manager).
 - **Sincronización en Tiempo Real:** El mod funciona como un vigilante de memoria. Detecta de forma automática cuando llega el día Jueves en el juego (cambio de inflación) o cuando el jugador modifica una etiqueta con la pistola de precios, enviando los cambios inmediatamente a la nube.
-- **Modo Manual:** Puedes presionar la tecla **F9** en cualquier momento para forzar la exportación local a `.csv` y a la nube.
+- **Modo Manual:** Puedes presionar la tecla **F9** en cualquier momento, o usar el **botón de exportación** dentro del menú de BepInEx (F1) para forzar la sincronización.
 
 ## 🛠️ Requisitos
 
@@ -25,9 +25,11 @@ Este es un mod para **Supermarket Together** creado con C# y BepInEx. Su funció
 5. Copia la URL secreta que te proporciona Google.
 
 ### 2. Configurar el Mod
-1. Ejecuta el juego una vez con el mod instalado para que BepInEx genere el archivo de configuración automáticamente, y luego cierra el juego.
-2. Ve a la carpeta de tu juego y abre el archivo `BepInEx/config/com.tunombre.supermarket.precios.cfg` con cualquier editor de texto (como el Bloc de notas).
-3. Pega la URL secreta que copiaste en el paso anterior justo después de `UrlGoogleSheets = ` y guarda el archivo.
+1. **(Recomendado)** Asegúrate de tener instalado **BepInEx Configuration Manager** en tu carpeta de plugins.
+2. Inicia el juego y presiona **F1** para abrir el menú de configuración superpuesto.
+3. Busca y despliega la pestaña de **Exportador de Precios CSV**, pega tu URL secreta en la caja de texto correspondiente y ¡listo! Se guardará automáticamente.
+   *(En este mismo menú encontrarás un botón de "Exportar a Google Sheets" para forzar el envío instantáneo).*
+*(Alternativa manual sin menú: Ejecuta el juego una vez, ciérralo y pega tu URL en el archivo `BepInEx/config/com.tunombre.supermarket.precios.cfg`).*
 
 ### 3. Compilación
 1. Abre una terminal en la carpeta de este proyecto (`ModExportadorPrecios`).

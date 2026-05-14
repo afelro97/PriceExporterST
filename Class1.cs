@@ -1,4 +1,4 @@
-﻿using System;
+﻿﻿using System;
 using System.IO;
 using System.Text;
 using BepInEx;
@@ -14,12 +14,29 @@ namespace ModExportadorPrecios
     [BepInPlugin("com.tunombre.supermarket.precios", "Exportador de Precios CSV", "1.0.0")]
     public class ExportadorPlugin : BaseUnityPlugin
     {
+        public static ExportadorPlugin Instancia;
         private double hashEstadoAnterior = -1;
         private float timer = 0f;
         private BepInEx.Configuration.ConfigEntry<string> configUrlGoogle;
 
+        // Clase auxiliar para decirle a BepInEx que dibuje un botón UI en lugar de una caja de texto
+        public class BotonExportarUI
+        {
+            public Action<BepInEx.Configuration.ConfigEntryBase> CustomDrawer = DibujarBoton;
+        }
+
+        static void DibujarBoton(BepInEx.Configuration.ConfigEntryBase entry)
+        {
+            // Dibuja el botón usando el sistema gráfico nativo de Unity (IMGUI)
+            if (GUILayout.Button("Exportar a Google Sheets", GUILayout.ExpandWidth(true)))
+            {
+                if (Instancia != null) Instancia.ExportarCSVReal();
+            }
+        }
+
         void Awake()
         {
+            Instancia = this;
             Logger.LogInfo("¡El mod Exportador de Precios se ha cargado correctamente!");
             
             // Configuramos BepInEx para que lea la URL desde un archivo externo
@@ -27,6 +44,12 @@ namespace ModExportadorPrecios
                                           "UrlGoogleSheets", 
                                           "", // El valor por defecto estará vacío
                                           "Pega aquí tu URL de Google Apps Script para sincronizar con la nube.");
+
+            // Agregamos el botón a la ventana de configuración
+            Config.Bind("Nube", 
+                        "Forzar Sincronización", 
+                        "", 
+                        new ConfigDescription("Haz clic en el botón para enviar los datos manualmente en cualquier momento.", null, new BotonExportarUI()));
         }
 
         void Update()
@@ -95,7 +118,7 @@ namespace ModExportadorPrecios
             }
         }
 
-        void ExportarCSVReal()
+        public void ExportarCSVReal() // <-- ¡Importante hacerlo public para que el botón pueda acceder!
         {
             Logger.LogInfo("--- EXPORTANDO DATOS FINALES (MERCADO, ETIQUETAS Y UMBRALES) ---");
             string rutaArchivo = Path.Combine(Paths.PluginPath, "PreciosExportados.csv");
