@@ -1,3 +1,5 @@
+*Read this in other languages: [English](README_en.md).*
+
 # Supermarket Together - Mod Exportador de Precios
 
 Este es un mod para **Supermarket Together** creado con C# y BepInEx. Su función principal es aplicar ingeniería inversa para extraer los datos internos de los productos del juego (Costos, Inflación, Precios de Etiquetas y Tolerancia de NPCs) y exportarlos en tiempo real a una hoja de **Google Sheets** en la nube.
@@ -7,6 +9,7 @@ Este es un mod para **Supermarket Together** creado con C# y BepInEx. Su funció
 - **Exportación Matemática:** Extrae el ID, Nombre, Tier y Costo Base. Además, **calcula en tiempo real** el Precio de Mercado (Costo * Inflación del Tier), extrae el Precio de Etiqueta (Player Pricing) y descubre el límite máximo que los clientes pagarán (Threshold de NPC_Manager).
 - **Sincronización en Tiempo Real:** El mod funciona como un vigilante de memoria. Detecta de forma automática cuando llega el día Jueves en el juego (cambio de inflación) o cuando el jugador modifica una etiqueta con la pistola de precios, enviando los cambios inmediatamente a la nube.
 - **Modo Manual:** Puedes presionar la tecla **F9** en cualquier momento, o usar el **botón de exportación** dentro del menú de BepInEx (F1) para forzar la sincronización.
+- **Multilingüe:** Incluye soporte nativo para Español e Inglés (`lang_es.txt` y `lang_en.txt`). El idioma se puede cambiar fácilmente desde el menú de configuración (F1).
 
 ## 🛠️ Requisitos
 
@@ -48,6 +51,11 @@ Para probar la magia en vivo: apunta a cualquier producto en las estanterías co
 Este mod fue desarrollado mediante la descompilación del `Assembly-CSharp.dll` del juego base, identificando:
 * `ProductListing`: Base de datos que almacena `productsData`, `productPlayerPricing` y `tierInflation`.
 * `NPC_Manager`: Administrador que alberga el arreglo `productsThreshholdArray` oculto.
+
+## 🐛 Bugs y Sugerencias
+
+Si tienes alguna idea para mejorar el mod, quieres agregar un nuevo idioma, o encontraste un error, ¡me encantaría escucharlo!
+Por favor, abre un reporte en la pestaña de **Issues** de este repositorio: Crear un nuevo Issue
 
 ---
 *Creado con pasión, curiosidad e ingeniería de software.*

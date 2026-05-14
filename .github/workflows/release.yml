@@ -1,0 +1,38 @@
+name: Compilar y Publicar Release
+
+on:
+  push:
+    tags:
+      - 'v*' # Se activará automáticamente cuando crees un tag que empiece con "v" (ej: v1.0.0)
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+    
+    # Damos permisos al robot para escribir en la sección de Releases
+    permissions:
+      contents: write
+
+    steps:
+      - name: Descargar el código
+        uses: actions/checkout@v4
+
+      - name: Instalar entorno .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Compilar el Mod
+        run: dotnet build --configuration Release
+
+      - name: Preparar carpeta del ZIP
+        run: |
+          mkdir Empaquetado\plugins
+          copy bin\Release\net46\ModExportadorPrecios.dll Empaquetado\plugins\
+          copy README.md Empaquetado\
+          copy README_en.md Empaquetado\
+
+      - name: Subir a GitHub Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          files: Empaquetado/*

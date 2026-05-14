@@ -2,6 +2,7 @@
 using System.IO;
 using System.Text;
 using BepInEx;
+using BepInEx.Configuration;
 using UnityEngine;
 using System.Reflection;
 using System.Globalization;
@@ -18,38 +19,176 @@ namespace ModExportadorPrecios
         private double hashEstadoAnterior = -1;
         private float timer = 0f;
         private BepInEx.Configuration.ConfigEntry<string> configUrlGoogle;
+        private BepInEx.Configuration.ConfigEntry<string> configIdioma;
+        private static Dictionary<string, string> textos = new Dictionary<string, string>();
+        
+        private ConfigurationManagerAttributes attrMenuIdioma;
+        private ConfigurationManagerAttributes attrMenuUrl;
+        private ConfigurationManagerAttributes attrMenuForzar;
 
-        // Clase auxiliar para decirle a BepInEx que dibuje un botón UI en lugar de una caja de texto
-        public class BotonExportarUI
+        // Clase auxiliar para personalizar el menú de BepInEx (DEBE llamarse exactamente así)
+        public sealed class ConfigurationManagerAttributes
         {
-            public Action<BepInEx.Configuration.ConfigEntryBase> CustomDrawer = DibujarBoton;
+            public Action<BepInEx.Configuration.ConfigEntryBase> CustomDrawer;
+            public string DispName;
+            public bool HideSettingName; // ¡Nueva variable para ocultar el texto congelado de BepInEx!
         }
 
         static void DibujarBoton(BepInEx.Configuration.ConfigEntryBase entry)
         {
-            // Dibuja el botón usando el sistema gráfico nativo de Unity (IMGUI)
-            if (GUILayout.Button("Exportar a Google Sheets", GUILayout.ExpandWidth(true)))
+            GUILayout.BeginVertical();
+            
+            // Título con ajuste de línea automático
+            GUIStyle estiloLabel = new GUIStyle(GUI.skin.label) { wordWrap = true };
+            GUILayout.Label(Traducir("MenuForzar", "Sincronización Manual"), estiloLabel);
+            
+            if (GUILayout.Button(Traducir("BotonExportar", "Exportar a Google Sheets"), GUILayout.ExpandWidth(true)))
             {
                 if (Instancia != null) Instancia.ExportarCSVReal();
+            }
+            GUILayout.EndVertical();
+        }
+
+        static void DibujarUrl(BepInEx.Configuration.ConfigEntryBase entry)
+        {
+            GUILayout.BeginVertical();
+            
+            GUIStyle estiloLabel = new GUIStyle(GUI.skin.label) { wordWrap = true };
+            GUILayout.Label(Traducir("MenuUrl", "URL de Google Sheets"), estiloLabel);
+            
+            // Usamos TextArea multi-línea para que el enlace largo se acomode sin empujar la pantalla
+            GUIStyle estiloTexto = new GUIStyle(GUI.skin.textArea) { wordWrap = true };
+            entry.BoxedValue = GUILayout.TextArea(entry.BoxedValue?.ToString() ?? "", estiloTexto, GUILayout.ExpandWidth(true));
+            GUILayout.EndVertical();
+        }
+
+        public static string Traducir(string clave, string porDefecto)
+        {
+            // Busca si existe la traducción, si no, devuelve el texto por defecto
+            if (textos.ContainsKey(clave)) return textos[clave];
+            return porDefecto;
+        }
+
+        void GenerarPlantillasDeIdioma()
+        {
+            string pathEs = Path.Combine(Paths.PluginPath, "lang_es.txt");
+            if (!File.Exists(pathEs))
+            {
+                StringBuilder es = new StringBuilder();
+                es.AppendLine("# Archivo de traducción del mod Exportador de Precios");
+                es.AppendLine("LogCargado=¡El mod Exportador de Precios se ha cargado correctamente!");
+                es.AppendLine("BotonExportar=Exportar a Google Sheets");
+                es.AppendLine("DescUrl=Pega aquí tu URL de Google Apps Script para sincronizar con la nube.");
+                es.AppendLine("DescForzar=Haz clic en el botón para enviar los datos manualmente.");
+                es.AppendLine("EnviandoNube=Enviando datos a la nube de Google Sheets...");
+                es.AppendLine("ExitoNube=¡Google Sheets actualizado con éxito!");
+                es.AppendLine("SyncBienvenida=Tienda iniciada. Sincronización automática de bienvenida...");
+                es.AppendLine("SyncCambio=¡CAMBIO DE MERCADO O ETIQUETA DETECTADO! Sincronizando con Google Sheets...");
+                es.AppendLine("ExportandoLog=--- EXPORTANDO DATOS FINALES (MERCADO, ETIQUETAS Y UMBRALES) ---");
+                es.AppendLine("ErrorCatalogo=No se encontró el catálogo en escena. ¿Estás dentro de la tienda?");
+                es.AppendLine("ExitoCSV=¡Éxito! CSV guardado con {0} productos reales en: {1}");
+                es.AppendLine("ErrorGoogle=Error al conectar con Google Sheets: ");
+                es.AppendLine("ErrorClase=Error: No se pudo localizar la clase ProductListing.");
+                es.AppendLine("MenuUrl=URL de Google Sheets");
+                es.AppendLine("MenuForzar=Sincronización Manual");
+                es.AppendLine("MenuIdioma=Idioma");
+                File.WriteAllText(pathEs, es.ToString());
+            }
+
+            string pathEn = Path.Combine(Paths.PluginPath, "lang_en.txt");
+            if (!File.Exists(pathEn))
+            {
+                StringBuilder en = new StringBuilder();
+                en.AppendLine("# Translation file for Price Exporter Mod");
+                en.AppendLine("LogCargado=Price Exporter mod loaded successfully!");
+                en.AppendLine("BotonExportar=Export to Google Sheets");
+                en.AppendLine("DescUrl=Paste your Google Apps Script URL here to sync with the cloud.");
+                en.AppendLine("DescForzar=Click the button to manually send the data.");
+                en.AppendLine("EnviandoNube=Sending data to Google Sheets cloud...");
+                en.AppendLine("ExitoNube=Google Sheets updated successfully!");
+                en.AppendLine("SyncBienvenida=Store started. Automatic welcome synchronization...");
+                en.AppendLine("SyncCambio=MARKET OR LABEL CHANGE DETECTED! Syncing with Google Sheets...");
+                en.AppendLine("ExportandoLog=--- EXPORTING FINAL DATA (MARKET, LABELS AND THRESHOLDS) ---");
+                en.AppendLine("ErrorCatalogo=Catalog not found in scene. Are you inside the store?");
+                en.AppendLine("ExitoCSV=Success! CSV saved with {0} real products in: {1}");
+                en.AppendLine("ErrorGoogle=Error connecting to Google Sheets: ");
+                en.AppendLine("ErrorClase=Error: Could not locate ProductListing class.");
+                en.AppendLine("MenuUrl=Google Sheets URL");
+                en.AppendLine("MenuForzar=Manual Synchronization");
+                en.AppendLine("MenuIdioma=Language");
+                File.WriteAllText(pathEn, en.ToString());
+            }
+        }
+
+        void ConfigurarIdioma()
+        {
+            GenerarPlantillasDeIdioma();
+
+            attrMenuIdioma = new ConfigurationManagerAttributes { DispName = "Idioma / Language" }; // Lo dejamos global
+            configIdioma = Config.Bind("General", "Idioma", "es", new ConfigDescription("Código del idioma / Language code. El mod buscará el archivo lang_[idioma].txt en la carpeta plugins.", new AcceptableValueList<string>("es", "en"), attrMenuIdioma));
+            string archivoIdioma = Path.Combine(Paths.PluginPath, $"lang_{configIdioma.Value}.txt");
+
+            if (File.Exists(archivoIdioma))
+            {
+                // Leer el archivo de texto y cargar el diccionario
+                foreach (string linea in File.ReadAllLines(archivoIdioma))
+                {
+                    if (!string.IsNullOrWhiteSpace(linea) && linea.Contains("=") && !linea.StartsWith("#"))
+                    {
+                        var partes = linea.Split(new[] { '=' }, 2);
+                        textos[partes[0].Trim()] = partes[1].Trim();
+                    }
+                }
+            }
+            else
+            {
+                Logger.LogWarning($"El archivo de idioma {archivoIdioma} no existe. Usando textos por defecto (Español).");
             }
         }
 
         void Awake()
         {
             Instancia = this;
-            Logger.LogInfo("¡El mod Exportador de Precios se ha cargado correctamente!");
+            ConfigurarIdioma(); // ¡Muy importante cargar esto primero!
             
+            Logger.LogInfo(Traducir("LogCargado", "¡El mod Exportador de Precios se ha cargado correctamente!"));
+            
+            attrMenuUrl = new ConfigurationManagerAttributes { HideSettingName = true, CustomDrawer = DibujarUrl };
             // Configuramos BepInEx para que lea la URL desde un archivo externo
             configUrlGoogle = Config.Bind("Nube", 
                                           "UrlGoogleSheets", 
                                           "", // El valor por defecto estará vacío
-                                          "Pega aquí tu URL de Google Apps Script para sincronizar con la nube.");
+                                          new ConfigDescription(Traducir("DescUrl", "Pega aquí tu URL de Google Apps Script para sincronizar con la nube."), null, attrMenuUrl));
 
+            attrMenuForzar = new ConfigurationManagerAttributes { HideSettingName = true, CustomDrawer = DibujarBoton };
             // Agregamos el botón a la ventana de configuración
             Config.Bind("Nube", 
                         "Forzar Sincronización", 
                         "", 
-                        new ConfigDescription("Haz clic en el botón para enviar los datos manualmente en cualquier momento.", null, new BotonExportarUI()));
+                        new ConfigDescription(Traducir("DescForzar", "Haz clic en el botón para enviar los datos manualmente."), null, attrMenuForzar));
+                        
+            // ¡MAGIA!: Evento que se dispara al cambiar el idioma
+            configIdioma.SettingChanged += (sender, args) => RecargarIdioma();
+        }
+
+        void RecargarIdioma()
+        {
+            textos.Clear();
+            string archivoIdioma = Path.Combine(Paths.PluginPath, $"lang_{configIdioma.Value}.txt");
+            
+            if (File.Exists(archivoIdioma))
+            {
+                foreach (string linea in File.ReadAllLines(archivoIdioma))
+                {
+                    if (!string.IsNullOrWhiteSpace(linea) && linea.Contains("=") && !linea.StartsWith("#"))
+                    {
+                        var partes = linea.Split(new[] { '=' }, 2);
+                        textos[partes[0].Trim()] = partes[1].Trim();
+                    }
+                }
+            }
+            
+            Logger.LogInfo($"Idioma actualizado dinámicamente a: {configIdioma.Value}");
         }
 
         void Update()
@@ -106,21 +245,21 @@ namespace ModExportadorPrecios
             if (hashEstadoAnterior == -1)
             {
                 hashEstadoAnterior = estadoActual;
-                Logger.LogInfo("Tienda iniciada. Sincronización automática de bienvenida...");
+                Logger.LogInfo(Traducir("SyncBienvenida", "Tienda iniciada. Sincronización automática de bienvenida..."));
                 ExportarCSVReal();
             }
             // Si la huella digital cambió (llegó el Jueves y cambió la inflación, O tú cambiaste una etiqueta)
             else if (Math.Abs(hashEstadoAnterior - estadoActual) > 0.001)
             {
                 hashEstadoAnterior = estadoActual;
-                Logger.LogInfo("¡CAMBIO DE MERCADO (JUEVES) O DE ETIQUETA DETECTADO! Sincronizando con Google Sheets...");
+                Logger.LogInfo(Traducir("SyncCambio", "¡CAMBIO DE MERCADO O ETIQUETA DETECTADO! Sincronizando con Google Sheets..."));
                 ExportarCSVReal();
             }
         }
 
         public void ExportarCSVReal() // <-- ¡Importante hacerlo public para que el botón pueda acceder!
         {
-            Logger.LogInfo("--- EXPORTANDO DATOS FINALES (MERCADO, ETIQUETAS Y UMBRALES) ---");
+            Logger.LogInfo(Traducir("ExportandoLog", "--- EXPORTANDO DATOS FINALES (MERCADO, ETIQUETAS Y UMBRALES) ---"));
             string rutaArchivo = Path.Combine(Paths.PluginPath, "PreciosExportados.csv");
             StringBuilder csv = new StringBuilder();
             
@@ -134,7 +273,7 @@ namespace ModExportadorPrecios
                 
                 if (catalogoObj == null)
                 {
-                    Logger.LogWarning("No se encontró el catálogo en escena. ¿Estás dentro de la tienda?");
+                    Logger.LogWarning(Traducir("ErrorCatalogo", "No se encontró el catálogo en escena. ¿Estás dentro de la tienda?"));
                     return;
                 }
                 
@@ -193,14 +332,14 @@ namespace ModExportadorPrecios
                 }
                 
                 File.WriteAllText(rutaArchivo, csv.ToString());
-                Logger.LogInfo($"¡Éxito! CSV guardado con {contador} productos reales en: {rutaArchivo}");
+                Logger.LogInfo(string.Format(Traducir("ExitoCSV", "¡Éxito! CSV guardado con {0} productos reales en: {1}"), contador, rutaArchivo));
                 
                 // ¡ENVIAMOS A GOOGLE SHEETS LEYENDO LA URL DESDE EL ARCHIVO DE CONFIGURACIÓN!
                 string urlGoogleScript = configUrlGoogle.Value;
                 
                 if (!string.IsNullOrEmpty(urlGoogleScript))
                 {
-                    Logger.LogInfo("Enviando datos a la nube de Google Sheets...");
+                    Logger.LogInfo(Traducir("EnviandoNube", "Enviando datos a la nube de Google Sheets..."));
                     Task.Run(() => 
                     {
                         try 
@@ -210,19 +349,19 @@ namespace ModExportadorPrecios
                                 ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12; // Seguridad HTTPS
                                 client.Headers[HttpRequestHeader.ContentType] = "text/plain";
                                 client.UploadString(urlGoogleScript, csv.ToString());
-                                Logger.LogInfo("¡Google Sheets actualizado con éxito!");
+                                Logger.LogInfo(Traducir("ExitoNube", "¡Google Sheets actualizado con éxito!"));
                             }
                         } 
                         catch (Exception ex) 
                         {
-                            Logger.LogError("Error al conectar con Google Sheets: " + ex.Message);
+                            Logger.LogError(Traducir("ErrorGoogle", "Error al conectar con Google Sheets: ") + ex.Message);
                         }
                     });
                 }
             }
             else
             {
-                Logger.LogError("Error: No se pudo localizar la clase ProductListing.");
+                Logger.LogError(Traducir("ErrorClase", "Error: No se pudo localizar la clase ProductListing."));
             }
         }
 

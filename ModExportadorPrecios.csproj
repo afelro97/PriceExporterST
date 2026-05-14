@@ -8,36 +8,41 @@
   <ItemGroup>
     <!-- Conectamos con BepInEx -->
     <Reference Include="BepInEx">
-      <HintPath>D:\SteamLibrary\steamapps\common\Supermarket Together\BepInEx\core\BepInEx.dll</HintPath>
+      <HintPath>libs\BepInEx.dll</HintPath>
     </Reference>
     
     <!-- Conectamos con Unity -->
     <Reference Include="UnityEngine">
-      <HintPath>D:\SteamLibrary\steamapps\common\Supermarket Together\Supermarket Together_Data\Managed\UnityEngine.dll</HintPath>
+      <HintPath>libs\UnityEngine.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.CoreModule">
-      <HintPath>D:\SteamLibrary\steamapps\common\Supermarket Together\Supermarket Together_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
+      <HintPath>libs\UnityEngine.CoreModule.dll</HintPath>
     </Reference>
     
     <!-- Referencia para poder leer las teclas presionadas (Input y KeyCode) -->
     <Reference Include="UnityEngine.InputLegacyModule">
-      <HintPath>D:\SteamLibrary\steamapps\common\Supermarket Together\Supermarket Together_Data\Managed\UnityEngine.InputLegacyModule.dll</HintPath>
+      <HintPath>libs\UnityEngine.InputLegacyModule.dll</HintPath>
+    </Reference>
+
+    <!-- Referencia para la interfaz gráfica (GUILayout) -->
+    <Reference Include="UnityEngine.IMGUIModule">
+      <HintPath>libs\UnityEngine.IMGUIModule.dll</HintPath>
     </Reference>
 
     <!-- Referencia a netstandard requerida por las librerías modernas de Unity -->
     <Reference Include="netstandard">
-      <HintPath>D:\SteamLibrary\steamapps\common\Supermarket Together\Supermarket Together_Data\Managed\netstandard.dll</HintPath>
+      <HintPath>libs\netstandard.dll</HintPath>
     </Reference>
 
     <!-- Conectamos con el código específico del juego (donde está el StoreManager) -->
     <Reference Include="Assembly-CSharp">
-      <HintPath>D:\SteamLibrary\steamapps\common\Supermarket Together\Supermarket Together_Data\Managed\Assembly-CSharp.dll</HintPath>
+      <HintPath>libs\Assembly-CSharp.dll</HintPath>
     </Reference>
   </ItemGroup>
 
   <!-- Copiar automáticamente el .dll a la carpeta de plugins al compilar -->
   <Target Name="CopiarAlJuego" AfterTargets="Build">
-    <Copy SourceFiles="$(TargetPath)" DestinationFolder="D:\SteamLibrary\steamapps\common\Supermarket Together\BepInEx\plugins\" />
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="D:\SteamLibrary\steamapps\common\Supermarket Together\BepInEx\plugins\" Condition="Exists('D:\SteamLibrary\steamapps\common\Supermarket Together\BepInEx\plugins\')" />
   </Target>
 
 </Project>

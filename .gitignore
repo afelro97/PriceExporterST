@@ -14,3 +14,4 @@ PreciosExportados.csv
 
 # No subir DLLs del juego si alguna vez se copian aquí por error
 *.dll
+!libs/*.dll
