@@ -30,7 +30,7 @@ Este es un mod para **Supermarket Together** creado con C# y BepInEx. Su funció
        var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
        var csvData = Utilities.parseCsv(e.postData.contents);
        sheet.clear();
-       sheet.getRange(1, 1, csvData.length, csvData.length).setValues(csvData);
+       sheet.getRange(1, 1, csvData.length, csvData[0].length).setValues(csvData);
        return ContentService.createTextOutput("OK");
      } catch(error) {
        return ContentService.createTextOutput("Error: " + error);
