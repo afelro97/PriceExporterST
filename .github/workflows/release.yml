@@ -37,6 +37,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: ModExportadorPrecios.zip
+          generate_release_notes: true
 
       - name: Subir a NexusMods
         uses: Nexus-Mods/upload-action@main

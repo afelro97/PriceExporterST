@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 
 namespace ModExportadorPrecios
 {
-    [BepInPlugin("com.tunombre.supermarket.precios", "Exportador de Precios CSV", "1.0.0")]
+    [BepInPlugin("com.tunombre.supermarket.precios", "Exportador de Precios CSV", "1.1.0")]
     public class ExportadorPlugin : BaseUnityPlugin
     {
         public static ExportadorPlugin Instancia;
@@ -25,6 +25,7 @@ namespace ModExportadorPrecios
         private ConfigurationManagerAttributes attrMenuIdioma;
         private ConfigurationManagerAttributes attrMenuUrl;
         private ConfigurationManagerAttributes attrMenuForzar;
+        private ConfigurationManagerAttributes attrMenuAutoPrecio;
 
         // Clase auxiliar para personalizar el menú de BepInEx (DEBE llamarse exactamente así)
         public sealed class ConfigurationManagerAttributes
@@ -32,6 +33,20 @@ namespace ModExportadorPrecios
             public Action<BepInEx.Configuration.ConfigEntryBase> CustomDrawer;
             public string DispName;
             public bool HideSettingName; // ¡Nueva variable para ocultar el texto congelado de BepInEx!
+        }
+
+        static void DibujarBotonAuto(BepInEx.Configuration.ConfigEntryBase entry)
+        {
+            GUILayout.BeginVertical();
+            
+            GUIStyle estiloLabel = new GUIStyle(GUI.skin.label) { wordWrap = true };
+            GUILayout.Label(Traducir("MenuAutoPrecio", "Asignación Automática de Precios"), estiloLabel);
+            
+            if (GUILayout.Button(Traducir("BotonAutoPrecio", "Aplicar Precios de Mercado a Todo"), GUILayout.ExpandWidth(true)))
+            {
+                if (Instancia != null) Instancia.AutocompletarPreciosMercado();
+            }
+            GUILayout.EndVertical();
         }
 
         static void DibujarBoton(BepInEx.Configuration.ConfigEntryBase entry)
@@ -92,6 +107,10 @@ namespace ModExportadorPrecios
                 es.AppendLine("MenuUrl=URL de Google Sheets");
                 es.AppendLine("MenuForzar=Sincronización Manual");
                 es.AppendLine("MenuIdioma=Idioma");
+                es.AppendLine("BotonAutoPrecio=Aplicar Precios de Mercado a Todo");
+                es.AppendLine("DescAutoPrecio=Calcula y aplica el precio ideal a todos los productos automáticamente.");
+                es.AppendLine("AutoPrecioLog=¡AUTO-ASIGNACIÓN COMPLETADA! Se actualizaron {0} productos.");
+                es.AppendLine("MenuAutoPrecio=Asignación Automática");
                 File.WriteAllText(pathEs, es.ToString());
             }
 
@@ -116,6 +135,10 @@ namespace ModExportadorPrecios
                 en.AppendLine("MenuUrl=Google Sheets URL");
                 en.AppendLine("MenuForzar=Manual Synchronization");
                 en.AppendLine("MenuIdioma=Language");
+                en.AppendLine("BotonAutoPrecio=Apply Market Prices to All");
+                en.AppendLine("DescAutoPrecio=Calculates and applies the ideal price to all products automatically.");
+                en.AppendLine("AutoPrecioLog=AUTO-ASSIGNMENT COMPLETED! {0} products were updated.");
+                en.AppendLine("MenuAutoPrecio=Automatic Assignment");
                 File.WriteAllText(pathEn, en.ToString());
             }
         }
@@ -167,6 +190,13 @@ namespace ModExportadorPrecios
                         "", 
                         new ConfigDescription(Traducir("DescForzar", "Haz clic en el botón para enviar los datos manualmente."), null, attrMenuForzar));
                         
+            attrMenuAutoPrecio = new ConfigurationManagerAttributes { HideSettingName = true, CustomDrawer = DibujarBotonAuto };
+            // Agregamos el nuevo botón de Auto-Precio en una nueva sección
+            Config.Bind("Gestión de Tienda", 
+                        "Auto Precio", 
+                        "", 
+                        new ConfigDescription(Traducir("DescAutoPrecio", "Calcula y aplica el precio ideal a todos los productos automáticamente."), null, attrMenuAutoPrecio));
+
             // ¡MAGIA!: Evento que se dispara al cambiar el idioma
             configIdioma.SettingChanged += (sender, args) => RecargarIdioma();
         }
@@ -198,12 +228,42 @@ namespace ModExportadorPrecios
                 ExportarCSVReal();
             }
             
+            // Si presiona F8, asignamos todos los precios mágicamente
+            if (Input.GetKeyDown(KeyCode.F8))
+            {
+                AutocompletarPreciosMercado();
+            }
+
+            // Si presiona F7, hacemos un Escaneo Fantasma para despertar a los NPCs
+            if (Input.GetKeyDown(KeyCode.F7))
+            {
+                DespertarUmbralesNPC();
+            }
+
+            // Tecla F6 para Diagnóstico rápido en la consola
+            if (Input.GetKeyDown(KeyCode.F6))
+            {
+                DiagnosticarUmbrales();
+            }
+
             // Si presiona F10, buscamos el precio de venta que nos falta
             if (Input.GetKeyDown(KeyCode.F10))
             {
                 BuscarPreciosDeVenta();
             }
             
+            // Nuevo escáner de métodos con F11
+            if (Input.GetKeyDown(KeyCode.F11))
+            {
+                EscanearMetodos();
+            }
+            
+            // Escáner de propiedades del producto con F12
+            if (Input.GetKeyDown(KeyCode.F12))
+            {
+                EscanearProducto();
+            }
+
             // Auto-vigilante cada 5 segundos
             timer += Time.deltaTime;
             if (timer >= 5f)
@@ -211,6 +271,21 @@ namespace ModExportadorPrecios
                 timer = 0f;
                 VigilarCambios();
             }
+        }
+
+        void OnGUI()
+        {
+            // Creamos el estilo del texto
+            GUIStyle estilo = new GUIStyle();
+            estilo.fontSize = 20; // Tamaño más grande
+            estilo.richText = true; // Activamos etiquetas HTML para evitar referencias externas
+            estilo.normal.textColor = new Color(1f, 1f, 1f, 0.5f); // Blanco al 50% de opacidad para no estorbar
+            
+            // Obtenemos el nombre y la versión automáticamente desde los metadatos de tu mod
+            string textoInfo = $"<b>{Info.Metadata.Name} v{Info.Metadata.Version}</b>";
+            
+            // Dibujamos el texto en la esquina superior izquierda (X: 10, Y: 10)
+            GUI.Label(new Rect(10, 10, 400, 40), textoInfo, estilo);
         }
 
         void VigilarCambios()
@@ -269,7 +344,23 @@ namespace ModExportadorPrecios
             if (tipoCatálogo != null)
             {
                 UnityEngine.Object catalogoObj = UnityEngine.Object.FindFirstObjectByType(tipoCatálogo);
-                UnityEngine.Object npcManagerObj = tipoNPCManager != null ? UnityEngine.Object.FindFirstObjectByType(tipoNPCManager) : null;
+                
+                // Búsqueda profunda: encuentra el NPC_Manager incluso si está oculto o inactivo
+                UnityEngine.Object npcManagerObj = null;
+                if (tipoNPCManager != null)
+                {
+                    var managers = Resources.FindObjectsOfTypeAll(tipoNPCManager);
+                    foreach (UnityEngine.Object m in managers)
+                    {
+                        Component comp = m as Component;
+                        // Filtramos para ignorar los prefabs (los objetos reales en escena tienen isLoaded = true)
+                        if (comp != null && comp.gameObject.scene.isLoaded)
+                        {
+                            npcManagerObj = m;
+                            break;
+                        }
+                    }
+                }
                 
                 if (catalogoObj == null)
                 {
@@ -288,10 +379,20 @@ namespace ModExportadorPrecios
                 float[] arrayInflacion = inflationField?.GetValue(catalogoObj) as float[];
                 
                 float[] arrayThreshold = null;
-                if (npcManagerObj != null)
+                if (tipoNPCManager != null)
                 {
-                    FieldInfo thresholdField = tipoNPCManager.GetField("productsThreshholdArray", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-                    arrayThreshold = thresholdField?.GetValue(npcManagerObj) as float[];
+                    FieldInfo thresholdField = tipoNPCManager.GetField("productsThreshholdArray", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
+                    if (thresholdField != null)
+                    {
+                        if (thresholdField.IsStatic) arrayThreshold = thresholdField.GetValue(null) as float[];
+                        else if (npcManagerObj != null) arrayThreshold = thresholdField.GetValue(npcManagerObj) as float[];
+                        
+                        if (arrayThreshold == null) Logger.LogWarning("No se pudo extraer productsThreshholdArray (¿NPC_Manager es nulo o el arreglo no se ha inicializado?).");
+                    }
+                    else
+                    {
+                        Logger.LogWarning("¡Alerta! La variable 'productsThreshholdArray' no se encontró en NPC_Manager. ¿Cambió de nombre?");
+                    }
                 }
                 
                 System.Collections.IEnumerable listaProductos = listaField.GetValue(catalogoObj) as System.Collections.IEnumerable;
@@ -301,14 +402,30 @@ namespace ModExportadorPrecios
                 {
                     Type tipoProducto = producto.GetType();
                     FieldInfo idField = tipoProducto.GetField("productID", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-                    FieldInfo nameField = tipoProducto.GetField("productBrand", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                    
+                    // El nombre real está oculto en el nombre del archivo 3D (Ej: "0_Pasta")
+                    FieldInfo prefabField = tipoProducto.GetField("productPrefab", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                    FieldInfo brandField = tipoProducto.GetField("productBrand", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
                     FieldInfo priceField = tipoProducto.GetField("basePricePerUnit", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
                     FieldInfo tierField = tipoProducto.GetField("productTier", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
                     
                     int idInt = (int)(idField?.GetValue(producto) ?? 0);
                     int tierInt = (int)(tierField?.GetValue(producto) ?? 0);
                     
-                    string nombre = nameField?.GetValue(producto)?.ToString().Replace(",", "") ?? "Desconocido";
+                    string nombre = "Desconocido";
+                    UnityEngine.Object prefabObj = prefabField?.GetValue(producto) as UnityEngine.Object;
+                    if (prefabObj != null)
+                    {
+                        nombre = prefabObj.name; // Ej: "0_Pasta"
+                        if (nombre.Contains("_")) nombre = nombre.Substring(nombre.IndexOf('_') + 1); // Extraemos solo "Pasta"
+                    }
+                    else if (brandField != null)
+                    {
+                        nombre = brandField.GetValue(producto)?.ToString() ?? "Desconocido";
+                    }
+                    
+                    // Limpiamos caracteres que rompan el CSV
+                    nombre = nombre.Replace("\"", "").Replace("\n", " ").Replace("\r", "");
                     float costoBase = (float)(priceField?.GetValue(producto) ?? 0f);
                     
                     // ¡LA MAGIA MATEMÁTICA! Precio de Mercado = Costo Base * Inflación del Tier
@@ -318,8 +435,9 @@ namespace ModExportadorPrecios
                     // Precio que le puso el jugador a la etiqueta
                     float precioEtiqueta = (arrayEtiquetas != null && idInt >= 0 && idInt < arrayEtiquetas.Length) ? arrayEtiquetas[idInt] : 0f;
                     
-                    // Límite máximo que un cliente pagará por este producto
-                    float precioNPC = (arrayThreshold != null && idInt >= 0 && idInt < arrayThreshold.Length) ? arrayThreshold[idInt] : 0f;
+                    // Calculamos el Precio MÁXIMO real que el cliente pagará (Mercado + Tolerancia)
+                    float tolerancia = (arrayThreshold != null && idInt >= 0 && idInt < arrayThreshold.Length) ? arrayThreshold[idInt] : 0f;
+                    float precioNPC = (float)Math.Round(precioMercado + tolerancia, 2);
                     
                     // Formateamos los números a 2 decimales limpios
                     string fCosto = string.Format(CultureInfo.InvariantCulture, "{0:0.00}", costoBase);
@@ -327,7 +445,17 @@ namespace ModExportadorPrecios
                     string fEtiqueta = string.Format(CultureInfo.InvariantCulture, "{0:0.00}", precioEtiqueta);
                     string fNPC = string.Format(CultureInfo.InvariantCulture, "{0:0.00}", precioNPC);
                     
-                    csv.AppendLine($"{idInt},{nombre},{tierInt},{fCosto},{fMercado},{fEtiqueta},{fNPC}");
+                    // Si el idioma es español, cambiamos los puntos por comas
+                    if (configIdioma.Value == "es")
+                    {
+                        fCosto = fCosto.Replace(".", ",");
+                        fMercado = fMercado.Replace(".", ",");
+                        fEtiqueta = fEtiqueta.Replace(".", ",");
+                        fNPC = fNPC.Replace(".", ",");
+                    }
+                    
+                    // Envolvemos en comillas dobles para aislar las comas decimales del separador CSV
+                    csv.AppendLine($"{idInt},\"{nombre}\",{tierInt},\"{fCosto}\",\"{fMercado}\",\"{fEtiqueta}\",\"{fNPC}\"");
                     contador++;
                 }
                 
@@ -365,6 +493,194 @@ namespace ModExportadorPrecios
             }
         }
 
+        public void AutocompletarPreciosMercado()
+        {
+            StartCoroutine(RutinaAutocompletar());
+        }
+
+        private System.Collections.IEnumerator RutinaAutocompletar()
+        {
+            Type tipoCatálogo = Assembly.Load("Assembly-CSharp").GetType("ProductListing");
+            Type tipoNPCManager = Assembly.Load("Assembly-CSharp").GetType("NPC_Manager");
+            if (tipoCatálogo == null) yield break;
+            
+            UnityEngine.Object catalogoObj = UnityEngine.Object.FindFirstObjectByType(tipoCatálogo);
+            if (catalogoObj == null)
+            {
+                Logger.LogWarning(Traducir("ErrorCatalogo", "No se encontró el catálogo en escena. ¿Estás dentro de la tienda?"));
+                yield break;
+            }
+            
+            UnityEngine.Object npcManagerObj = null;
+            if (tipoNPCManager != null)
+            {
+                var managers = Resources.FindObjectsOfTypeAll(tipoNPCManager);
+                foreach (UnityEngine.Object m in managers)
+                {
+                    Component comp = m as Component;
+                    if (comp != null && comp.gameObject.scene.isLoaded)
+                    {
+                        npcManagerObj = m;
+                        break;
+                    }
+                }
+            }
+
+            // ¡Aquí tomamos el control del método que descubriste!
+            MethodInfo updatePriceMethod = tipoCatálogo.GetMethod("CmdUpdateProductPrice", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            if (updatePriceMethod == null)
+            {
+                Logger.LogError("No se encontró el método CmdUpdateProductPrice.");
+                yield break;
+            }
+
+            FieldInfo listaField = tipoCatálogo.GetField("productsData", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            FieldInfo inflationField = tipoCatálogo.GetField("tierInflation", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            
+            float[] arrayInflacion = inflationField?.GetValue(catalogoObj) as float[];
+            
+            float[] arrayThreshold = null;
+            if (tipoNPCManager != null)
+            {
+                FieldInfo thresholdField = tipoNPCManager.GetField("productsThreshholdArray", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
+                if (thresholdField != null)
+                {
+                    if (thresholdField.IsStatic) arrayThreshold = thresholdField.GetValue(null) as float[];
+                    else if (npcManagerObj != null) arrayThreshold = thresholdField.GetValue(npcManagerObj) as float[];
+                }
+            }
+
+            System.Collections.IEnumerable listaProductos = listaField?.GetValue(catalogoObj) as System.Collections.IEnumerable;
+            if (listaProductos == null) yield break;
+
+            int modificados = 0;
+            int encolados = 0;
+            foreach (var producto in listaProductos)
+            {
+                Type tipoProducto = producto.GetType();
+                int idInt = (int)(tipoProducto.GetField("productID", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)?.GetValue(producto) ?? -1);
+                int tierInt = (int)(tipoProducto.GetField("productTier", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)?.GetValue(producto) ?? 0);
+                float costoBase = (float)(tipoProducto.GetField("basePricePerUnit", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)?.GetValue(producto) ?? 0f);
+                
+                if (idInt == -1) continue;
+
+                float inflacion = (arrayInflacion != null && tierInt >= 0 && tierInt < arrayInflacion.Length) ? arrayInflacion[tierInt] : 1f;
+                float precioMercado = (float)Math.Round(costoBase * inflacion, 2);
+                float tolerancia = (arrayThreshold != null && idInt >= 0 && idInt < arrayThreshold.Length) ? arrayThreshold[idInt] : 0f;
+                
+                // Calculamos el Precio MÁXIMO absoluto para maximizar ganancias
+                float maxPrecio = (float)Math.Round(precioMercado + tolerancia, 2);
+
+                try
+                {
+                    // Disparamos la función oficial del juego: CmdUpdateProductPrice(ID, Precio)
+                    updatePriceMethod.Invoke(catalogoObj, new object[] { idInt, maxPrecio });
+                    modificados++;
+                }
+                catch (Exception e)
+                {
+                    Logger.LogWarning($"No se pudo actualizar el producto ID {idInt}: {e.Message}");
+                }
+
+                encolados++;
+                if (encolados >= 15) // Procesamos de 15 en 15 para no saturar la red
+                {
+                    encolados = 0;
+                    yield return null; // Esperamos 1 fotograma (microsegundos)
+                }
+            }
+
+            Logger.LogInfo(string.Format(Traducir("AutoPrecioLog", "¡AUTO-ASIGNACIÓN COMPLETADA! Se actualizaron {0} productos."), modificados));
+        }
+
+        public void DespertarUmbralesNPC()
+        {
+            StartCoroutine(RutinaDespertar());
+        }
+
+        private System.Collections.IEnumerator RutinaDespertar()
+        {
+            Type tipoCatálogo = Assembly.Load("Assembly-CSharp").GetType("ProductListing");
+            if (tipoCatálogo == null) yield break;
+            
+            UnityEngine.Object catalogoObj = UnityEngine.Object.FindFirstObjectByType(tipoCatálogo);
+            if (catalogoObj == null) yield break;
+
+            MethodInfo updatePriceMethod = tipoCatálogo.GetMethod("CmdUpdateProductPrice", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            FieldInfo listaField = tipoCatálogo.GetField("productsData", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            FieldInfo playerPricingField = tipoCatálogo.GetField("productPlayerPricing", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            
+            float[] arrayEtiquetas = playerPricingField?.GetValue(catalogoObj) as float[];
+            System.Collections.IEnumerable listaProductos = listaField?.GetValue(catalogoObj) as System.Collections.IEnumerable;
+            
+            if (listaProductos == null || arrayEtiquetas == null || updatePriceMethod == null) yield break;
+
+            int encolados = 0;
+            foreach (var producto in listaProductos)
+            {
+                Type tipoProducto = producto.GetType();
+                int idInt = (int)(tipoProducto.GetField("productID", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)?.GetValue(producto) ?? -1);
+                
+                if (idInt >= 0 && idInt < arrayEtiquetas.Length)
+                {
+                    float precioActual = arrayEtiquetas[idInt];
+                    // Disparamos la pistola de precios fantasma con el mismo precio actual
+                    try { updatePriceMethod.Invoke(catalogoObj, new object[] { idInt, precioActual }); } catch {}
+                }
+
+                encolados++;
+                if (encolados >= 15)
+                {
+                    encolados = 0;
+                    yield return null;
+                }
+            }
+            Logger.LogInfo("¡Escaneo Fantasma completado! Los NPCs han calculado los límites máximos.");
+        }
+
+        public void DiagnosticarUmbrales()
+        {
+            Logger.LogInfo("--- DIAGNÓSTICO EN VIVO DE UMBRALES NPC ---");
+            Type tipoNPCManager = Assembly.Load("Assembly-CSharp").GetType("NPC_Manager");
+            if (tipoNPCManager == null) return;
+            
+            UnityEngine.Object npcManagerObj = null;
+            var managers = Resources.FindObjectsOfTypeAll(tipoNPCManager);
+            foreach (UnityEngine.Object m in managers)
+            {
+                Component comp = m as Component;
+                if (comp != null && comp.gameObject.scene.isLoaded)
+                {
+                    npcManagerObj = m;
+                    break;
+                }
+            }
+            
+            FieldInfo thresholdField = tipoNPCManager.GetField("productsThreshholdArray", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
+            float[] arrayThreshold = null;
+            if (thresholdField != null)
+            {
+                if (thresholdField.IsStatic) arrayThreshold = thresholdField.GetValue(null) as float[];
+                else if (npcManagerObj != null) arrayThreshold = thresholdField.GetValue(npcManagerObj) as float[];
+            }
+            
+            if (arrayThreshold != null)
+            {
+                int mostrados = 0;
+                for (int i = 0; i < arrayThreshold.Length; i++)
+                {
+                    if (arrayThreshold[i] > 0)
+                    {
+                        Logger.LogInfo($"Producto ID [{i}] -> Tolerancia NPC calculada: {arrayThreshold[i]}");
+                        mostrados++;
+                        if (mostrados >= 10) break; // Solo mostramos los 10 primeros para no inundar la consola
+                    }
+                }
+                if (mostrados == 0) Logger.LogWarning("Todos los valores están en CERO. Los NPCs aún no han calculado nada.");
+            }
+            Logger.LogInfo("--- FIN DEL DIAGNÓSTICO ---");
+        }
+
         void BuscarPreciosDeVenta()
         {
             Logger.LogInfo("--- ESCÁNER ABSOLUTO DE LISTAS Y ARRAYS DECIMALES ---");
@@ -399,6 +715,65 @@ namespace ModExportadorPrecios
             }
             
             Logger.LogInfo("--- FIN DE BÚSQUEDA ---");
+        }
+
+        void EscanearMetodos()
+        {
+            Logger.LogInfo("--- ESCANEANDO MÉTODOS DE PRODUCTLISTING ---");
+            Type tipoCatálogo = Assembly.Load("Assembly-CSharp").GetType("ProductListing");
+            
+            if (tipoCatálogo != null)
+            {
+                MethodInfo[] metodos = tipoCatálogo.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
+                foreach (MethodInfo m in metodos)
+                {
+                    // Filtramos los métodos por defecto de Unity para que solo muestre los creados por el desarrollador
+                    if (m.DeclaringType == tipoCatálogo) 
+                    {
+                        Logger.LogInfo($"MÉTODO ENCONTRADO: {m.Name}");
+                    }
+                }
+            }
+            else
+            {
+                Logger.LogError("No se encontró la clase ProductListing");
+            }
+            Logger.LogInfo("--- FIN DEL ESCÁNER ---");
+        }
+
+        void EscanearProducto()
+        {
+            Logger.LogInfo("--- ESCANEANDO CAMPOS DEL PRODUCTO ---");
+            Type tipoCatálogo = Assembly.Load("Assembly-CSharp").GetType("ProductListing");
+            if (tipoCatálogo != null)
+            {
+                UnityEngine.Object catalogoObj = UnityEngine.Object.FindFirstObjectByType(tipoCatálogo);
+                
+                if (catalogoObj == null)
+                {
+                    Logger.LogWarning("No se encontró el catálogo. Debes estar dentro de la tienda para escanear productos.");
+                    return;
+                }
+                
+                FieldInfo listaField = tipoCatálogo.GetField("productsData", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                System.Collections.IEnumerable listaProductos = listaField?.GetValue(catalogoObj) as System.Collections.IEnumerable;
+                
+                if (listaProductos != null)
+                {
+                    foreach (var producto in listaProductos)
+                    {
+                        Type tipoProducto = producto.GetType();
+                        FieldInfo[] variables = tipoProducto.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                        foreach (var v in variables)
+                        {
+                            object valor = v.GetValue(producto);
+                            Logger.LogInfo($"CAMPO: {v.Name} | TIPO: {v.FieldType.Name} | VALOR: {valor}");
+                        }
+                        break; // Solo imprimimos el primer producto para no saturar la consola
+                    }
+                }
+            }
+            Logger.LogInfo("--- FIN DEL ESCÁNER ---");
         }
     }
 }

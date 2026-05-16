@@ -16,3 +16,6 @@ ESTADO ACTUAL:
 ¡Integración con interfaz gráfica (UI) conseguida! El mod se conecta perfectamente al BepInEx Configuration Manager para que el jugador pueda pegar su URL de Google con F1.
 ¡Botón de Exportación! Se creó exitosamente un componente UI personalizado en el Configuration Manager para lanzar exportaciones manuales con un clic.
 ¡Localización (i18n)! Se implementó un sistema de mapeo de idiomas con archivos externos (.txt), generando plantillas base oficiales para Español e Inglés en el arranque.
+¡Modo Dios Automático! Se programó una rutina en red (Coroutine) para eludir el anti-spam del servidor y asignar los precios máximos tolerados a toda la tienda con la tecla F8.
+¡Extracción Profunda! Se logró obtener el nombre real de los productos extrayéndolo directamente del archivo 3D (Prefab) en lugar de usar la marca comercial.
+¡Formatos Limpios! Se optimizó la inyección de CSV a Google Sheets (`sheet.clear()`) para prevenir errores de formato y cruce de datos.
