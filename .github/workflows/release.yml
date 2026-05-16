@@ -48,4 +48,5 @@ jobs:
           file_group_id: ${{ secrets.NEXUSMODS_GROUP_ID }}
           filename: ModExportadorPrecios.zip
           version: ${{ github.ref_name }} # Esto tomará automáticamente el nombre de tu versión (ej: v1.0.4)
+          description: "Lanzamiento de la versión ${{ github.ref_name }}. Puedes ver las notas de parche completas y todas las novedades en la sección de Releases de nuestro GitHub oficial."
           file_category: main
